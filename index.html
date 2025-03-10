@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tech Spin Wheel</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        :root {
+            --main-color: #00ff88;
+            --bg-color: #0a0f0a;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--bg-color);
+            font-family: 'Trebuchet MS', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .cyber-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(0deg, 
+                    transparent 0px,
+                    transparent 2px,
+                    rgba(0, 255, 100, 0.05) 3px,
+                    rgba(0, 255, 100, 0.05) 4px),
+                radial-gradient(circle at 50% 50%, 
+                    rgba(0, 255, 100, 0.1) 0%, 
+                    transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+            z-index: 1;
+        }
+
+        .wheel {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid var(--main-color);
+            box-shadow: 0 0 30px rgba(0, 255, 100, 0.2);
+            transition: transform 4.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: rgba(0, 20, 0, 0.9);
+        }
+
+        .slice {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(100% 50%, 50% 100%, 0 50%);
+            transform-origin: bottom right;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slice span {
+            transform: rotate(30deg);
+            text-align: center;
+            font-size: 16px;
+            padding: 15px;
+            text-shadow: 0 0 10px var(--main-color);
+            font-weight: 900;
+            letter-spacing: 1px;
+            background: linear-gradient(45deg, #00ff88, #b3ffda);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            animation: textGlow 2s infinite;
+        }
+
+        @keyframes textGlow {
+            50% { text-shadow: 0 0 15px var(--main-color); }
+        }
+
+        .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 45px;
+            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+            background: #ff0055;
+            z-index: 2;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
+            filter: drop-shadow(0 0 5px white);
+        }
+
+        .btn {
+            display: block;
+            margin: 30px auto;
+            padding: 16px 45px;
+            background: linear-gradient(45deg, #00ff64 30%, #00cc50);
+            border: none;
+            border-radius: 30px;
+            color: #00110e;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 5px 25px rgba(0, 255, 100, 0.4);
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 20, 0, 0.95);
+            padding: 30px 50px;
+            border-radius: 15px;
+            border: 2px solid var(--main-color);
+            color: var(--main-color);
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0, 255, 100, 0.3);
+            animation: zoom 0.3s;
+            z-index: 3;
+        }
+
+        @media (max-width: 360px) {
+            .container { width: 280px; height: 280px; }
+            .slice span { font-size: 14px; padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cyber-overlay"></div>
+    <div id="app">
+        <div class="container">
+            <div class="pointer"></div>
+            <div class="wheel" :style="{ transform: `rotate(${rotation}deg)` }">
+                <div v-for="(prize, index) in prizes" 
+                     :key="index" 
+                     class="slice" 
+                     :style="sliceStyle(index)">
+                    <span>{{ prize }}</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn" @click="spin" :disabled="isSpinning">
+            {{ isSpinning ? 'SPINNING...' : 'TAP TO SPIN' }}
+        </button>
+
+        <div v-if="showResult" class="modal" @click="showResult = false">
+            <h2>🎉 YOU WON!</h2>
+            <p>{{ result }}</p>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    prizes: ['Bags', 'T-Shirts', 'Pins', 'Hats', 'Filaments', '$50 vouchers'],
+                    rotation: 0,
+                    isSpinning: false,
+                    showResult: false,
+                    result: ''
+                }
+            },
+            computed: {
+                sliceStyle() {
+                    return (index) => ({
+                        transform: `rotate(${index * 60}deg)`
+                    })
+                }
+            },
+            methods: {
+                spin() {
+                    if (this.isSpinning) return
+                    
+                    this.isSpinning = true
+                    const targetIndex = Math.floor(Math.random() * this.prizes.length)
+                    const extraRounds = 6;
+                    const targetRotation = extraRounds * 360 + targetIndex * 60 + 30
+                    
+                    this.rotation += targetRotation
+                    this.result = this.prizes[targetIndex]
+                    
+                    setTimeout(() => {
+                        this.showResult = true
+                        this.isSpinning = false
+                    }, 4500)
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
